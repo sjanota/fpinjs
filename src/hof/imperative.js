@@ -4,18 +4,21 @@ const citizens = [
     location: "Office",
     equipment: ["Wheelchair"],
     age: 85,
+    protectiveGear: false,
   },
   {
     name: "GC",
     location: "Phone booth",
     equipment: ["Mamona"],
     age: 50,
+    protectiveGear: false,
   },
   {
     name: "Pszymuś",
     location: "Home",
     equipment: ["Dobry humor"],
     age: 18,
+    protectiveGear: false,
   },
 ];
 
@@ -23,16 +26,30 @@ function partial(f, args) {
   return (x) => f(...args, x);
 }
 
-function map(citizens, f) {
+// curry = ((x, y) => z) => (x) => (y) => z
+function curry(f) {
+  return (x) => (y) => f(x, y);
+}
+
+const ifElse = (predicate, ifTrue, ifFalse) => (x) =>
+  predicate(x) ? ifTrue(x) : ifFalse(x);
+
+const map2 = (f, items) => {
   const result = [];
-  for (let i = 0; i < citizens.length; i++) {
-    result.push(f(citizens[i]));
+  for (let i = 0; i < items.length; i++) {
+    result.push(f(items[i]));
   }
   return result;
-}
+};
+
+const map = curry(map2);
 
 // g(f(x)) = g * f
 function compose(g, f) {
+  return (x) => g(f(x));
+}
+
+function pipe(f, g) {
   return (x) => g(f(x));
 }
 
@@ -43,34 +60,29 @@ function giveSrajtaśma(citizen) {
   };
 }
 
-function moveTo(location, citizen) {
-  return { ...citizen, location };
+function wearProtectiveGear(citizen) {
+  return { ...citizen, protectiveGear: true };
 }
 
-const moveToShelter = partial(moveTo, ["Shelter"]);
-const moveToHospital = partial(moveTo, ["Hospital"]);
+const moveTo = (location) => (citizen) => ({ ...citizen, location });
+const isOlderThen = (age) => (citizen) => citizen.age > age;
 
-function moveToAppropriateLocation(citizen) {
-  if (citizen.age > 45) {
-    return moveToHospital(citizen);
-  } else {
-    return moveToShelter(citizen);
-  }
-}
+const moveToShelter = moveTo("Shelter");
+const moveToHospital = moveTo("Hospital");
 
-// [citizen] => [citizen]
-function moveAllToAppropriateLocation(citizens) {
-  return map(citizens, moveToAppropriateLocation);
-}
+const moveToAppropriateLocation = ifElse(
+  isOlderThen(45),
+  moveToHospital,
+  moveToShelter
+);
 
-// [citizen] => [citizen]
-function giveAllSrajtaśma(citizens) {
-  return map(citizens, giveSrajtaśma);
-}
+const manageCitizenOnNuclearWarStarted = compose(
+  moveToAppropriateLocation,
+  giveSrajtaśma,
+  wearProtectiveGear
+);
 
-function onStartNuclearWar(citizens) {
-  return compose(giveAllSrajtaśma, moveAllToAppropriateLocation)(citizens);
-}
+const onStartNuclearWar = map(manageCitizenOnNuclearWarStarted);
 
 const newCitizens = onStartNuclearWar(citizens);
 
